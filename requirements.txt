@@ -2,3 +2,4 @@ flask
 flask-cors
 fpdf2
 openpyxl
+gunicorn
