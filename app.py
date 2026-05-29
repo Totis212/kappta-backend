@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
-from database import get_connection
+from database import get_connection, sync_connection
 from fpdf import FPDF
 import openpyxl
 from io import BytesIO
@@ -72,6 +72,7 @@ def registro():
             (username, password)
         )
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -155,6 +156,7 @@ def crear_categoria():
             (nombre, presupuesto, usuario_id)
         )
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -181,6 +183,7 @@ def actualizar_presupuesto(categoria_id):
             (nuevo_presupuesto, categoria_id)
         )
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -234,6 +237,7 @@ def agregar_gasto():
             (categoria_id, descripcion, monto, usuario_id)
         )
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -284,6 +288,7 @@ def eliminar_gasto(gasto_id):
 
         cursor.execute("DELETE FROM Gastos WHERE Id = ?", (gasto_id,))
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -362,6 +367,7 @@ def guardar_nomina(usuario_id):
             (nomina, periodo, usuario_id)
         )
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -402,6 +408,7 @@ def crear_sobres_recomendados(usuario_id):
             )
 
         conn.commit()
+        sync_connection(conn)
 
         cursor.close()
         conn.close()
@@ -457,6 +464,8 @@ def distribuir_nomina(usuario_id):
         )
 
         conn.commit()
+        sync_connection(conn)
+
         cursor.close()
         conn.close()
 
@@ -524,6 +533,8 @@ def guardar_ahorro():
             )
 
         conn.commit()
+        sync_connection(conn)
+
         cursor.close()
         conn.close()
 
@@ -578,6 +589,8 @@ def mover_sobrante(usuario_id):
             )
 
         conn.commit()
+        sync_connection(conn)
+
         cursor.close()
         conn.close()
 

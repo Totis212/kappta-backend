@@ -1,12 +1,22 @@
+import libsql
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), 'kappta.db')
+TURSO_URL = os.environ.get("TURSO_URL", "")
+TURSO_AUTH_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    if TURSO_URL:
+        conn = libsql.connect("file:kappta.db", sync_url=TURSO_URL, auth_token=TURSO_AUTH_TOKEN)
+        conn.sync()
+    else:
+        conn = libsql.connect("kappta.db")
     conn.row_factory = sqlite3.Row
     return conn
+
+def sync_connection(conn):
+    if TURSO_URL:
+        conn.sync()
 
 def init_db():
     conn = get_connection()
@@ -58,7 +68,8 @@ def init_db():
     ''')
 
     conn.commit()
+    sync_connection(conn)
     conn.close()
 
 init_db()
-print("Base de datos SQLite creada correctamente")
+print("Base de datos conectada a Turso")
