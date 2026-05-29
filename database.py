@@ -22,6 +22,17 @@ def get_connection():
 def sync_connection(conn):
     pass
 
+def convert_arg(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return {"type": "integer", "value": 1 if value else 0}
+    if isinstance(value, int):
+        return {"type": "integer", "value": value}
+    if isinstance(value, float):
+        return {"type": "float", "value": value}
+    return {"type": "text", "value": str(value)}
+
 class TursoRow:
     def __init__(self, values, columns):
         for i, col in enumerate(columns):
@@ -29,27 +40,30 @@ class TursoRow:
     
     def __getitem__(self, key):
         if isinstance(key, str):
-            return getattr(self, key)
+            return getattr(self, key, None)
+        elif isinstance(key, int):
+            cols = list(self.__dict__.keys())
+            if key < len(cols):
+                return getattr(self, cols[key])
         return None
     
-    def __repr__(self):
-        return dict(self.__dict__).__repr__()
+    def __len__(self):
+        return len(self.__dict__)
 
-class TursoConnection:
+class TursoCursor:
     def __init__(self, url, token):
         self.url = url
         self.token = token
         self.results = []
         self.columns = []
-    
-    def cursor(self):
-        return self
+        self._lastrowid = None
+        self._rowcount = 0
     
     def execute(self, sql, params=None):
         if params is None:
             params = []
         
-        url = self.url + "/v2/pipeline"
+        api_url = self.url + "/v2/pipeline"
         headers = {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
@@ -61,7 +75,7 @@ class TursoConnection:
                     "type": "execute",
                     "stmt": {
                         "sql": sql,
-                        "args": [{"type": "text", "value": str(p) if p is not None else None} for p in params]
+                        "args": [convert_arg(p) for p in params]
                     }
                 },
                 {
@@ -70,7 +84,7 @@ class TursoConnection:
             ]
         }
         
-        response = requests.post(url, headers=headers, json=body)
+        response = requests.post(api_url, headers=headers, json=body)
         
         if response.status_code != 200:
             raise Exception(f"Turso error: {response.text}")
@@ -81,16 +95,25 @@ class TursoConnection:
             result = data["results"][0]
             if "response" in result and "result" in result["response"]:
                 res = result["response"]["result"]
+                self._rowcount = res.get("affected_row_count", 0)
+                self._lastrowid = res.get("last_insert_rowid", None)
                 if "rows" in res and "cols" in res:
-                    self.results = []
                     self.columns = [col["name"] for col in res["cols"]]
+                    self.results = []
                     for row in res["rows"]:
                         values = []
                         for val in row:
                             if val is None:
                                 values.append(None)
                             elif isinstance(val, dict) and "value" in val:
-                                values.append(val["value"])
+                                v = val["value"]
+                                t = val.get("type", "text")
+                                if t == "integer" and v is not None:
+                                    values.append(int(v))
+                                elif t == "float" and v is not None:
+                                    values.append(float(v))
+                                else:
+                                    values.append(v)
                             else:
                                 values.append(val)
                         self.results.append(TursoRow(values, self.columns))
@@ -116,17 +139,30 @@ class TursoConnection:
         self.results = []
         return rows
     
+    @property
+    def lastrowid(self):
+        return self._lastrowid
+    
+    @property
+    def rowcount(self):
+        return self._rowcount
+    
+    def close(self):
+        pass
+
+class TursoConnection:
+    def __init__(self, url, token):
+        self.url = url
+        self.token = token
+    
+    def cursor(self):
+        return TursoCursor(self.url, self.token)
+    
     def commit(self):
         pass
     
     def close(self):
         pass
-    
-    @property  
-    def lastrowid(self):
-        if self.results:
-            return None
-        return None
 
 def init_db():
     conn = get_connection()
