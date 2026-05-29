@@ -26,9 +26,9 @@ def convert_arg(value):
     if value is None:
         return None
     if isinstance(value, bool):
-        return {"type": "integer", "value": 1 if value else 0}
+        return {"type": "integer", "value": "1" if value else "0"}
     if isinstance(value, int):
-        return {"type": "integer", "value": value}
+        return {"type": "integer", "value": str(value)}
     if isinstance(value, float):
         return {"type": "float", "value": value}
     return {"type": "text", "value": str(value)}
