@@ -3,4 +3,4 @@ flask-cors
 fpdf2
 openpyxl
 gunicorn
-libsql-experimental==0.0.35
+requests
